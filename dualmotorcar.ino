@@ -14,14 +14,11 @@ Program to control a dual motor car using Serial input.
 
 #define SERIAL_BAUD_RATE        4800
 
-#define  CMD_GO_FWD              '1'
-#define  CMD_GO_FWD_NUM           1
-#define  CMD_GO_BCK              '2'
-#define  CMD_GO_BCK_NUM              2
-#define  CMD_GO_LEFT             '3'
-#define  CMD_GO_LEFT_NUM            3
-#define  CMD_GO_RIGHT            '4'
-#define  CMD_GO_RIGHT_NUM            4
+#define  CMD_STOP           0
+#define  CMD_GO_FWD         1
+#define  CMD_GO_BCK         2
+#define  CMD_GO_LEFT        3
+#define  CMD_GO_RIGHT       4
 
 boolean goingForward  =  false;
 boolean goingBack  =  false;
@@ -30,8 +27,6 @@ boolean goingLeft    =  false;
 boolean usingSerialLog = true;
 byte serialData = 0;   // for incoming serial data
 byte lastCommand = 0;
-unsigned long timeMonitor = 0;
-unsigned long timeComparator = 0;
 
 void setup() {
   Serial.begin(4800);
@@ -48,71 +43,61 @@ void setup() {
 }
 
 void loop() {
-  while (Serial.available() > 0) {
+  if (Serial.available() > 0) {
     // read the incoming byte:
     serialData = Serial.read();
     // say what you got:
     serialPrint("I received: ");
     serialPrintln(serialData);
-    
-    switch (serialData) {
-   //   case CMD_GO_FWD:
-      case CMD_GO_FWD_NUM:
-          lastCommand = CMD_GO_FWD;
-          timeMonitor = millis(); // reset the time when received a valid command
-          if (!goingForward) {
-            // currently car is not going forward
-            // so we need to first stop the car
-            fullStop();
-          }
-          moveForward();
-          delay(MOVE_DURATION_MILLIS);
-          break;
-     //case CMD_GO_BCK:
-      case CMD_GO_BCK_NUM:
-          lastCommand = CMD_GO_BCK;
-          timeMonitor = millis(); // reset the time when received a valid command
-          if (!goingBack) {
-            // currently car is not going backwards
-            // so we need to first stop the car
-            fullStop();
-          }
-          moveBackwards();
-          delay(MOVE_DURATION_MILLIS);
-          break;
-      //case CMD_GO_LEFT:
-      case CMD_GO_LEFT_NUM:
-          lastCommand = CMD_GO_LEFT;
-          timeMonitor = millis(); // reset the time when received a valid command
-          if (!goingLeft) {
-            // currently car is not going left
-            // so we need to first stop the car
-            fullStop();
-          }
-          turnLeft();
-          delay(LEFT_RIGHT_MOVE_DURATION);
-          break;
-      //case CMD_GO_RIGHT:
-      case CMD_GO_RIGHT_NUM:
-          lastCommand = CMD_GO_RIGHT;
-          timeMonitor = millis(); // reset the time when received a valid command
-          if (!goingRight) {
-            // currently car is not going left
-            // so we need to first stop the car
-            fullStop();
-          }
-          turnRight();
-          delay(LEFT_RIGHT_MOVE_DURATION);
-          break;
-      default: 
+  }
+  // not sure if to put this switch inside "if" or not
+  switch (serialData) {
+    case CMD_STOP:
+      fullStop();
+      break;
+    case CMD_GO_FWD:
+        if (!goingForward) {
+          // currently car is not going forward
+          // so we need to first stop the car
           fullStop();
-          serialPrint("Default: ");
-          serialPrintln(serialData);
-          break;
-          
-    } //end switch
-  } // end serial.available
-  fullStop();
+        }
+        moveForward();
+//          delay(MOVE_DURATION_MILLIS);
+        break;
+    case CMD_GO_BCK:
+        if (!goingBack) {
+          // currently car is not going backwards
+          // so we need to first stop the car
+          fullStop();
+        }
+        moveBackwards();
+//         delay(MOVE_DURATION_MILLIS);
+        break;
+    case CMD_GO_LEFT:
+        if (!goingLeft) {
+          // currently car is not going left
+          // so we need to first stop the car
+          fullStop();
+        }
+        turnLeft();
+//          delay(LEFT_RIGHT_MOVE_DURATION);
+        break;
+    case CMD_GO_RIGHT:
+        if (!goingRight) {
+          // currently car is not going left
+          // so we need to first stop the car
+          fullStop();
+        }
+        turnRight();
+//          delay(LEFT_RIGHT_MOVE_DURATION);
+        break;
+    default: 
+        fullStop();
+        serialPrint("Default: ");
+        serialPrintln(serialData);
+        break;
+        
+  } //end switch
 }
 
 void demo() {
@@ -290,7 +275,6 @@ void fullStop()
   goingBack = false;
   goingLeft = false;
   goingRight = false;
-//  delay(STOP_DURATION_MILLIS);
 }
 
 void blink()

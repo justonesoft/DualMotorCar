@@ -14,22 +14,35 @@ Program to control a dual motor car using Serial input.
 
 #define SERIAL_BAUD_RATE        4800
 
-#define  CMD_STOP           0
-#define  CMD_GO_FWD         1
-#define  CMD_GO_BCK         2
-#define  CMD_GO_LEFT        3
-#define  CMD_GO_RIGHT       4
+#define  CMD_STOP               0
+#define  CMD_STOP_CHAR          '0'
+#define  CMD_GO_FWD             1
+#define  CMD_GO_FWD_CHAR        '1'
+#define  CMD_GO_BCK             2
+#define  CMD_GO_BCK_CHAR        '2'
+#define  CMD_GO_LEFT            3
+#define  CMD_GO_LEFT_CHAR       '3'
+#define  CMD_GO_RIGHT           4
+#define  CMD_GO_RIGHT_CHAR      '4'
+#define  CMD_NO_OP          255
+
+// responses to be sent back through serial
+#define RESP_STOP               "#0"
+#define RESP_FWD                "#1"
+#define RESP_BCK                "#2"
+#define RESP_LEFT               "#3"
+#define RESP_RIGHT              "#4"
 
 boolean goingForward  =  false;
 boolean goingBack  =  false;
 boolean goingRight   =  false;
 boolean goingLeft    =  false;
 boolean usingSerialLog = true;
-byte serialData = 0;   // for incoming serial data
-byte lastCommand = 0;
+byte serialData = CMD_NO_OP;   // for incoming serial data
+byte lastCommand = CMD_NO_OP;
 
 void setup() {
-  Serial.begin(4800);
+  Serial.begin(SERIAL_BAUD_RATE);
   pinMode(MOTORS_ENABLE_PWM_PIN, OUTPUT); // both motor-enable pins are connected to this
   digitalWrite(MOTORS_ENABLE_PWM_PIN, LOW);
   pinMode(LEFT_MOTOR_A_PIN, OUTPUT);
@@ -40,6 +53,8 @@ void setup() {
   disableMotors();
   fullStop();
   Serial.println("READY");
+  serialData = CMD_NO_OP;
+  lastCommand = CMD_NO_OP;
 }
 
 void loop() {
@@ -49,55 +64,74 @@ void loop() {
     // say what you got:
     serialPrint("I received: ");
     serialPrintln(serialData);
+
+    lastCommand = serialData;
   }
+
   // not sure if to put this switch inside "if" or not
-  switch (serialData) {
+  switch (lastCommand) {
     case CMD_STOP:
+    case CMD_STOP_CHAR:
+      serialPrint("STOP");
+      serialPrint(RESP_STOP);
       fullStop();
       break;
     case CMD_GO_FWD:
+    case CMD_GO_FWD_CHAR:
         if (!goingForward) {
           // currently car is not going forward
           // so we need to first stop the car
           fullStop();
         }
         moveForward();
+        serialPrint(RESP_FWD);
 //          delay(MOVE_DURATION_MILLIS);
         break;
     case CMD_GO_BCK:
+    case CMD_GO_BCK_CHAR:
         if (!goingBack) {
           // currently car is not going backwards
           // so we need to first stop the car
           fullStop();
         }
         moveBackwards();
+        serialPrint(RESP_BCK);
 //         delay(MOVE_DURATION_MILLIS);
         break;
     case CMD_GO_LEFT:
+    case CMD_GO_LEFT_CHAR:
         if (!goingLeft) {
           // currently car is not going left
           // so we need to first stop the car
           fullStop();
         }
         turnLeft();
+        serialPrint(RESP_LEFT);
 //          delay(LEFT_RIGHT_MOVE_DURATION);
         break;
     case CMD_GO_RIGHT:
+    case CMD_GO_RIGHT_CHAR:
         if (!goingRight) {
           // currently car is not going left
           // so we need to first stop the car
           fullStop();
         }
         turnRight();
+        serialPrint(RESP_RIGHT);
 //          delay(LEFT_RIGHT_MOVE_DURATION);
+        break;
+    case CMD_NO_OP:
+        // don't do anything
         break;
     default: 
         fullStop();
         serialPrint("Default: ");
-        serialPrintln(serialData);
+        serialPrintln(lastCommand);
         break;
         
   } //end switch
+  
+  lastCommand = CMD_NO_OP;
 }
 
 void demo() {
@@ -251,6 +285,8 @@ void disableMotors()
   // First disable both motor-enable pins
   // This should be enough to stop both motors
   digitalWrite(MOTORS_ENABLE_PWM_PIN, LOW);
+  disableLeftMotor();
+  disableRightMotor();
 }
 
 void disableLeftMotor()
